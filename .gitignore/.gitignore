@@ -1,0 +1,158 @@
+<?php
+error_reporting(E_ERROR | E_PARSE);
+set_time_limit(0); //
+//ini_set('display_errors', false);
+//require_once 'Server.php';
+require '.setting/phpmailer/PHPMailerAutoload.php';
+require '.setting/phpmailer/class.phpmailer.php';
+require '.setting/evil.function.php';
+require 'settings.php';
+require 'smtp.php';
+
+
+echo "         \r\n";
+$file = file_get_contents($evil_setup['mail_list']);
+    if ($file) {
+        $ext = explode("\r\n", $file);
+        echo "====[   EVIL SENDER    ]====";
+        echo "\r\n";
+        echo "==Ready To Killing Machine==";
+        echo "\r\n";
+        echo "\n";
+        $smtp_key = 0;
+        foreach ($ext as $num => $email) {
+
+            if ($smtp_key == count($smtp_acc)) {
+                $smtp_key = 0;
+            }
+            //kirim
+            Kirim($email, $smtp_acc[$smtp_key], $evil_setup);
+
+            $smtp_key++;
+
+            ///
+            sleep($evil_setup['sleeptime']);
+        }
+        if ($gx_setup['userremoveline'] == 1) {
+            $remove = Removeline($mailist, $email);
+        }
+    }
+function Kirim($email, $smtp_acc, $evil_setup)
+{
+    $smtp           = new SMTP;
+    $smtp->do_debug = 0;
+
+    $smtpserver     = 'smtp-relay.gmail.com';
+    $smtpport       = '587';
+    $smtpuser       = $smtp_acc['username'];
+    $smtppass       = $smtp_acc['password'];
+    $priority       = $evil_setup['priority'];
+    $userandom      = $evil_setup['userandom'];
+    $sleeptime      = $evil_setup['sleeptime'];
+    $replacement    = $evil_setup['replacement'];
+    $userremoveline = $evil_setup['userremoveline'];
+    $fromname       = $evil_setup['fromname'];
+    $frommail       = $evil_setup['frommail'];
+    $subject        = $evil_setup['subject'];
+    $msgfile        = $evil_setup['msgfile'];
+    $filepdf        = $evil_setup['filesend'];
+    $randurl        = $evil_setup['scampage'];
+
+    if (!$smtp->connect($smtpserver, $smtpport)) {
+        throw new Exception('Connect failed');
+    }
+
+    //Say hello
+    if (!$smtp->hello(gethostname())) {
+        throw new Exception('EHLO failed: ' . $smtp->getError()['error']);
+    }
+
+    $e = $smtp->getServerExtList();
+
+    if (array_key_exists('STARTTLS', $e)) {
+        $tlsok = $smtp->startTLS();
+        if (!$tlsok) {
+            throw new Exception('Failed to start encryption: ' . $smtp->getError()['error']);
+        }
+        if (!$smtp->hello(gethostname())) {
+            throw new Exception('EHLO (2) failed: ' . $smtp->getError()['error']);
+        }
+        $e = $smtp->getServerExtList();
+    }
+
+    if (array_key_exists('AUTH', $e)) {
+
+        if ($smtp->authenticate($smtpuser, $smtppass)) {
+            $mail           = new PHPMailer;
+            $mail->Encoding = 'base64'; // 8bit base64 multipart/alternative quoted-printable
+            $mail->CharSet  = 'UTF-8';
+            $mail->headerLine("format", "flowed");
+            /*  Smtp connect    */
+            $mail->addCustomHeader('X-Ebay-Mailtracker', '11400.000.0.0.df812eaca5dd4ebb8aa71380465a8e74');
+        $mail->addCustomHeader('X-PP-REQUESTED-TIME',' 1418475967894');
+            $mail->IsSMTP();
+            $mail->SMTPAuth = true;
+            $mail->Host     = $smtpserver;
+            $mail->Port     = $smtpport;
+            $mail->Priority = $priority;
+            $mail->Username = $smtpuser;
+            $mail->Password = $smtppass;
+
+            if ($userandom == 1) {
+                $rand     = rand(1, 50);
+                $fromname = randName($rand);
+                $frommail = randMail($rand);
+                $subject  = randSubject($rand);
+            }
+
+            if ($filesend == 0) {
+                $filepdf = file_get_contents($AddAttachment);
+                $mail->AddAttachment($filepdf);
+            }
+
+            $asu       = RandString1(32);
+            $asu1      = RandString(5);
+            $asu2      = RandString1(5);
+            $asu3      = RandString4(6);
+            $nmbr      = RandNumber(5);
+            $fromnames = str_replace('##randstring##', $asu1, $fromname);
+            $frommails = str_replace('##randstring##', $asu, $frommail);
+            $subjects  = str_replace('##randstring##', $asu3, $subject);
+
+            $mail->setFrom($frommails, $fromnames);
+
+            $mail->AddAddress($email);
+
+            $mail->Subject = $subjects;
+            if ($replacement == 1) {
+                $msg = lettering($msgfile, $email, $frommail, $fromname, $randurl, $subject);
+            } else {
+                $msg = file_get_contents($msgfile);
+            }
+if ($no === $account['delay']['email'])
+        {
+        echo date();
+        echo trim("".$email.",");
+            $no = 0;
+        }
+            $mail->msgHTML($msg);
+
+            if (!$mail->send()) {
+                echo "SMTP Error : " . $mail->ErrorInfo;
+                exit();
+            } else {
+                echo "";
+                echo date('');
+                echo "\n";
+            }
+            $mail->clearAddresses();
+
+        } else {
+            throw new Exception('Authentication failed: ' . $smtp->getError()['error']);
+        }
+
+        $smtp->quit(true);
+
+    }
+
+}
